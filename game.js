@@ -269,16 +269,94 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+const SKINS = {
+  retro: {
+    label: 'Retro',
+    colors: COLORS,
+    draw(context, px, py, s, color) {
+      context.fillStyle = color;
+      context.fillRect(px + 1, py + 1, s - 2, s - 2);
+      context.fillStyle = 'rgba(255,255,255,0.12)';
+      context.fillRect(px + 1, py + 1, s - 2, 4);
+    },
+  },
+  neon: {
+    label: 'Neon',
+    colors: [
+      null,
+      '#00fff7', '#fff200', '#d400ff', '#39ff14',
+      '#ff1744', '#2979ff', '#ff9100', '#c0c0ff',
+    ],
+    draw(context, px, py, s, color) {
+      context.fillStyle = '#000';
+      context.fillRect(px + 2, py + 2, s - 4, s - 4);
+      context.shadowColor = color;
+      context.shadowBlur = 12;
+      context.strokeStyle = color;
+      context.lineWidth = 2;
+      context.strokeRect(px + 3, py + 3, s - 6, s - 6);
+      context.fillStyle = color;
+      context.globalAlpha *= 0.35;
+      context.fillRect(px + 6, py + 6, s - 12, s - 12);
+      context.shadowBlur = 0;
+    },
+  },
+  pastel: {
+    label: 'Pastel',
+    colors: [
+      null,
+      '#a8e6ef', '#fff1b8', '#d9b8f0', '#b9eac0',
+      '#f7b9b9', '#b9d4f7', '#ffd6a8', '#d0d0d8',
+    ],
+    draw(context, px, py, s, color) {
+      const r = s * 0.3;
+      context.fillStyle = color;
+      context.beginPath();
+      context.roundRect(px + 2, py + 2, s - 4, s - 4, r);
+      context.fill();
+      context.fillStyle = 'rgba(255,255,255,0.45)';
+      context.beginPath();
+      context.roundRect(px + 6, py + 5, s - 12, 5, 3);
+      context.fill();
+    },
+  },
+  pixel: {
+    label: 'Pixel art',
+    colors: [
+      null,
+      '#29b6f6', '#fdd835', '#ab47bc', '#66bb6a',
+      '#ef5350', '#5c6bc0', '#ffa726', '#9e9e9e',
+    ],
+    draw(context, px, py, s, color) {
+      const u = Math.floor(s / 6); // texel size
+      const inner = s - 2;
+      context.fillStyle = color;
+      context.fillRect(px + 1, py + 1, inner, inner);
+      // checker texture
+      context.fillStyle = 'rgba(0,0,0,0.18)';
+      for (let i = 1; i < 5; i++)
+        for (let j = 1; j < 5; j++)
+          if ((i + j) % 2 === 0) context.fillRect(px + 1 + i * u, py + 1 + j * u, u, u);
+      // bevel
+      context.fillStyle = 'rgba(255,255,255,0.5)';
+      context.fillRect(px + 1, py + 1, inner, u);
+      context.fillRect(px + 1, py + 1, u, inner);
+      context.fillStyle = 'rgba(0,0,0,0.45)';
+      context.fillRect(px + 1, py + s - 1 - u, inner, u);
+      context.fillRect(px + s - 1 - u, py + 1, u, inner);
+    },
+  },
+};
+
+let currentSkin = 'retro';
+
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
+  const skin = SKINS[currentSkin];
+  context.save();
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  skin.draw(context, x * size, y * size, size, skin.colors[colorIndex]);
+  context.restore();
 }
 
 function drawGrid() {
@@ -517,5 +595,32 @@ themeToggle.addEventListener('click', () => {
   applyTheme(isLight);
   localStorage.setItem('tetris-theme', isLight ? 'light' : 'dark');
 });
+
+const skinSelect = document.getElementById('skin-select');
+
+function applySkin(name) {
+  if (!SKINS[name]) name = 'retro';
+  currentSkin = name;
+  for (const k of Object.keys(SKINS)) document.body.classList.toggle('skin-' + k, k === name);
+  skinSelect.value = name;
+  if (current && !gameOver) { draw(); drawNext(); }
+}
+
+for (const [key, s] of Object.entries(SKINS)) {
+  const opt = document.createElement('option');
+  opt.value = key;
+  opt.textContent = s.label;
+  skinSelect.appendChild(opt);
+}
+
+skinSelect.addEventListener('change', () => {
+  applySkin(skinSelect.value);
+  try { localStorage.setItem('tetris-skin', currentSkin); } catch {}
+  skinSelect.blur(); // keep arrow keys for the game
+});
+
+let savedSkin = null;
+try { savedSkin = localStorage.getItem('tetris-skin'); } catch {}
+applySkin(savedSkin);
 
 showStart();
