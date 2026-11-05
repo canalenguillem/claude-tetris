@@ -42,7 +42,20 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 
+const pauseMenu = document.getElementById('pause-menu');
+const pauseMain = document.getElementById('pause-main');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelEl = document.getElementById('start-level');
+const MAX_START_LEVEL = 15;
+const RESUME_LOCK_MS = 200;
+
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let startLevel = 1;
+let inputLockUntil = 0;
+
+function intervalFor(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
+}
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -108,8 +121,8 @@ function clearLines() {
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = startLevel + Math.floor(lines / 10);
+    dropInterval = intervalFor(level);
     updateHUD();
   }
 }
@@ -232,14 +245,30 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    closePauseMenu();
+    inputLockUntil = performance.now() + RESUME_LOCK_MS;
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showControls(false);
+    pauseMenu.classList.remove('hidden');
+    document.getElementById('resume-btn').focus();
   }
+}
+
+function closePauseMenu() {
+  pauseMenu.classList.add('hidden');
+  if (document.activeElement && pauseMenu.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+}
+
+function showControls(show) {
+  pauseMain.classList.toggle('hidden', show);
+  pauseControls.classList.toggle('hidden', !show);
+  (show ? document.getElementById('controls-back-btn')
+        : document.getElementById('controls-btn')).focus();
 }
 
 function loop(ts) {
@@ -263,23 +292,33 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = intervalFor(level);
+  inputLockUntil = performance.now() + RESUME_LOCK_MS;
   dropAccum = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  closePauseMenu();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (!e.repeat) togglePause();
+    return;
+  }
   if (paused || gameOver) return;
+  if (e.repeat && e.code === 'Space') { e.preventDefault(); return; }
+  if (performance.now() < inputLockUntil) {
+    if (e.code === 'Space') e.preventDefault();
+    return;
+  }
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -303,6 +342,22 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+for (let i = 1; i <= MAX_START_LEVEL; i++) {
+  startLevelEl.add(new Option(i, i));
+}
+const savedLevel = parseInt(localStorage.getItem('tetris-start-level'), 10);
+if (savedLevel >= 1 && savedLevel <= MAX_START_LEVEL) startLevel = savedLevel;
+startLevelEl.value = startLevel;
+
+startLevelEl.addEventListener('change', () => {
+  startLevel = parseInt(startLevelEl.value, 10);
+  localStorage.setItem('tetris-start-level', startLevel);
+});
+document.getElementById('resume-btn').addEventListener('click', togglePause);
+document.getElementById('pause-restart-btn').addEventListener('click', init);
+document.getElementById('controls-btn').addEventListener('click', () => showControls(true));
+document.getElementById('controls-back-btn').addEventListener('click', () => showControls(false));
 
 const themeToggle = document.getElementById('theme-toggle');
 const toggleIcon = themeToggle.querySelector('.toggle-icon');
