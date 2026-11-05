@@ -52,7 +52,14 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <p id="overlay-msg"></p>
+        <form id="name-form" class="hidden" autocomplete="off">
+          <input id="name-input" type="text" maxlength="12" placeholder="Tu nombre" />
+          <button type="submit" id="save-btn">Guardar</button>
+        </form>
+        <div id="records" class="hidden"></div>
         <button id="restart-btn">Reiniciar</button>
+        <button id="reset-records" class="hidden">Resetear records</button>
       </div>
     </div>
 
