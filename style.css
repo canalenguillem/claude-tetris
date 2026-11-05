@@ -77,6 +77,54 @@ body {
   letter-spacing: 1px;
 }
 
+body.skin-neon {
+  --bg: #000;
+  --text: #e0e0e0;
+  --canvas-bg: #000;
+  --border: #00fff7;
+  --label: #00fff7;
+  --grid-line: #12122a;
+  --controls-text: #9fe;
+  --kbd-bg: #000;
+  --kbd-border: #d400ff;
+  --kbd-text: #d400ff;
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --toggle-bg: #000;
+  --toggle-border: #d400ff;
+  --toggle-text: #d400ff;
+}
+
+body.skin-neon #board,
+body.skin-neon #next-canvas {
+  box-shadow: 0 0 18px rgba(0, 255, 247, 0.5);
+}
+
+body.skin-pastel {
+  --canvas-bg: #fdf6fb;
+  --grid-line: #f0e3ee;
+  --border: #e3c9de;
+}
+
+body.skin-pixel #board,
+body.skin-pixel #next-canvas {
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+
+.skin-select {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--toggle-bg);
+  border: 1px solid var(--toggle-border);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--toggle-text);
+  cursor: pointer;
+}
+
 .theme-toggle:hover {
   border-color: #7aa2f7;
   color: #7aa2f7;
